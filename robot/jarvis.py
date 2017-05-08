@@ -128,11 +128,16 @@ class Jarvis:
                     )
 
     def suit_maker(self):
+        # todo: 根据city_id 准备一群suits 然后运行每个suit
         city_ids = self.city_list_redis.get('list_*')
         print "已有城市:", len(city_ids)
         for city_id in city_ids:
             city = MarkI(city_id=city_id, conf=self.conf)
             print city.get_data()
+
+    def target(self):
+        # todo: 每日凌晨执行，同步weather.com.cn线上城市结构
+        pass
 
 if __name__ == '__main__':
     j = Jarvis('config.ini')
