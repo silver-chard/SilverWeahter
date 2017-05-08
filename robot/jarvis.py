@@ -5,7 +5,7 @@ import time
 import urllib2
 
 from robot.IronManSuits.suits import MarkI
-from robot.weapens import db
+from robot.weapons import db
 
 
 class Jarvis:
