@@ -87,3 +87,8 @@ ENV/
 
 # Rope project settings
 .ropeproject
+
+# IDEA PyCharm
+.idea/
+.idea/vcs.xml
+.DS_Store
