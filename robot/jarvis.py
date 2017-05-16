@@ -105,7 +105,7 @@ class Jarvis:
             for station_no in stations:
                 if len(station_no) == 2:
                     self.city_list_redis.set(
-                        'city_{prov_no}_{prov_no}{station_no}{city_no}'.format(
+                        'station_{prov_no}_{prov_no}{station_no}{city_no}'.format(
                             prov_no=prov_no, city_no=city_no, station_no=station_no),
                         stations[station_no],
                         self.conf.get('misc', 'city_list_expires'))
@@ -117,7 +117,7 @@ class Jarvis:
                     )
                 else:
                     self.city_list_redis.set(
-                        'city_{prov_no}_{station_no}'.format(prov_no=prov_no, station_no=station_no),
+                        'station_{prov_no}_{station_no}'.format(prov_no=prov_no, station_no=station_no),
                         stations[station_no],
                         self.conf.get('misc', 'city_list_expires')
                     )
