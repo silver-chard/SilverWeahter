@@ -1,8 +1,11 @@
 # coding=utf-8
 import ConfigParser
+import datetime
 import json
+import logging
 import time
 import urllib2
+from logging import config
 
 from robot.IronManSuits.suits import MarkI
 from robot.weapons import db
@@ -13,14 +16,15 @@ class Jarvis:
     Jarvis 可以制作和管理许多suit 
     每个suit可以获取天气信息 分析 等等……
     """
-    def __init__(self, config_path='config.ini'):
+
+    def __init__(self, config_path='config/config.ini'):
 
         conf = ConfigParser.ConfigParser()
         conf.read(config_path)
         if not conf.sections():
             exit(1)
         self.conf = conf
-        self.db = db.get_db_conn(conf=conf)
+        self.db = db.get_db_Session(conf=conf)
         self.city_list_redis = db.get_redis_conn(conf=conf, db=self.conf.get('misc', 'city_list_redis'))
         if self.conf.get('misc', 'debug'):
             self.city_list_redis.flushall()
@@ -129,14 +133,21 @@ class Jarvis:
 
     def suit_maker(self):
         city_ids = self.city_list_redis.get('list_*')
-        print "已有城市:", len(city_ids)
         for city_id in city_ids:
             city = MarkI(city_id=city_id, conf=self.conf)
-            print city.get_data()
+            city.get_data()
+
+    def run(self):
+        start = time.time()
+        if datetime.datetime.now().hour == 0 or self.conf.get('misc', 'debug'):
+            logging.info('同步城市结构启动')
+            self.search_provinces()
+            logging.info('爬虫爬取结束 {time}s'.format(time=time.time() - start))
+            # self.suit_maker()
+
 
 if __name__ == '__main__':
-    j = Jarvis('config.ini')
-    start = time.time()
-    j.search_provinces()
-    print time.time() - start, 's'
-    j.suit_maker()
+    logging.config.fileConfig('config/log.conf')
+    logging.info('爬虫定时任务启动')
+    j = Jarvis()
+    j.run()
