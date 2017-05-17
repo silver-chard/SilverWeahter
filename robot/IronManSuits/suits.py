@@ -1,5 +1,6 @@
 # coding=utf-8
 import ConfigParser
+import datetime
 import json
 import logging
 import urllib
@@ -9,7 +10,8 @@ import bs4
 from sqlalchemy.exc import IntegrityError
 
 from robot.IronManSuits.models.weather_data import WeatherData
-from robot.weapons import data_miscs, db
+from robot.weapons import data_miscs, db, analyse_misc
+from robot.weapons.analyse_misc import temp_score_gen, wind_speed_gen, wind_dir_gen, cond_score_gen
 
 
 class MarkI:
@@ -40,7 +42,8 @@ class MarkI:
         redis链接获取
         :return: 
         """
-        return
+
+        return db.get_redis_conn(conf=self.conf, db=self.conf.get('misc', 'weather_data'))
 
     def get_data(self):
         """
@@ -107,9 +110,6 @@ class MarkI:
             logging.error(req.read(), req.getcode())
             return None
 
-    def analyze(self):
-        pass
-
     def get_web_weather_obj(self, raw_weather):
         weather = raw_weather.encode('utf8').split(',')
         weather_data = WeatherData()
@@ -135,18 +135,35 @@ class MarkI:
         return results[0]
 
     def save_data(self, raw_weather):
-        # session = db.get_db_Session(self.conf)
+        session = db.get_db_Session(self.conf)
         web_weather_obj = self.get_web_weather_obj(raw_weather)
         db_weather_obj = self.get_db_weather_data(web_weather_obj)
         if db_weather_obj:
-            self.compare_change(web_weather_obj, db_weather_obj)
-            print db_weather_obj.meta
-        try:
-            # session.add(new_weather_obj)
-            # session.commit()
-            pass
-        except IntegrityError as e:
-            logging.error(e)
+            web_weather_obj, score = self.compare_change(web_weather_obj, db_weather_obj)
+            try:
+                session.update(web_weather_obj)
+                session.commit()
+            except IntegrityError as e:
+                logging.error(e)
+        else:
+            try:
+                session.add(db_weather_obj)
+                session.commit()
+            except IntegrityError as e:
+                logging.error(e)
+        redis_k = '{city_id}_{date}_{hour}'.format(
+            city_id=self.city_id,
+            date=web_weather_obj.weather_date,
+            hour=web_weather_obj.weather_time
+        )
+        if (
+                    web_weather_obj.weather_date - datetime.datetime.now().date()).hours < 49 or is_hot(redis_k):
+            self.redis().set(redis_k, {
+                'temp': web_weather_obj.temp,
+                'cond': web_weather_obj.cond,
+                'wind_speed': web_weather_obj.wind_speed,
+                'wind_dir': web_weather_obj.wind_dir
+            }, self.conf.get('misc', 'redis_expire_times'))
 
     def save_history(self):
         pass
@@ -159,9 +176,21 @@ class MarkI:
                     web_weather_obj.weather_date != db_weather_obj.weather_date or
                     web_weather_obj.weather_time != db_weather_obj.weather_time):
             logging.error('city_id错误')
-        change_point = 0
+        hour_right = analyse_misc.get_hour_right(
+            web_weather_obj.weather_date,
+            web_weather_obj.weather_time)
+        temp_score = temp_score_gen(web_weather_obj.temp, db_weather_obj.temp)
+        cond_score = cond_score_gen(web_weather_obj.cond, db_weather_obj.cond)
+        wind_speed_score = wind_speed_gen(web_weather_obj.wind_speed, db_weather_obj.wind_speed)
+        wind_dir_score = wind_dir_gen(web_weather_obj.wind_dir, db_weather_obj.wind_dir)
+        score = {
+            'temp_score': hour_right * (temp_score),
+            'cond_score': hour_right * (cond_score),
+            'wind_speed_score': hour_right * (wind_speed_score),
+            'wind_dir_score': hour_right * (wind_dir_score),
+        }
         web_weather_obj.id = db_weather_obj.id
-        return web_weather_obj, change_point
+        return web_weather_obj, score
 
 
 if __name__ == '__main__':
