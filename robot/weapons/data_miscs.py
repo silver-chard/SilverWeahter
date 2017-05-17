@@ -1,7 +1,11 @@
 # coding=utf-8
 
 import datetime
+import json
 import logging
+
+from robot.IronManSuits.models.weather_data import WeatherData
+from robot.weapons import db
 
 """
 cond 
@@ -276,16 +280,23 @@ def get_date(date_str):
     return weather_date.date()
 
 
-def get_time(date_str):
-    try:
-        hour = int(date_str.split('日')[1].split('时')[0])
-    except ValueError as e:
-        logging.error(e)
-        return -1
-    if hour not in [2, 5, 8, 11, 14, 17, 20, 23]:
-        logging.error('hour {} not in list', hour)
-        return -1
-    return [2, 5, 8, 11, 14, 17, 20, 23].index(hour)
+def get_time(d):
+    hour_list = [2, 5, 8, 11, 14, 17, 20, 23]
+    if isinstance(d, str):
+        try:
+            hour = int(d.split('日')[1].split('时')[0])
+        except ValueError as e:
+            logging.error(e)
+            return -1
+        if hour not in [2, 5, 8, 11, 14, 17, 20, 23]:
+            logging.error('hour {} not in list'.format(hour))
+            return -1
+        return hour_list.index(hour)
+    elif isinstance(d, int):
+        if d > len(hour_list):
+            logging.error('hour flag {} out of range of hour list'.format(d))
+            return -1
+        return hour_list[d]
 
 
 def get_temp(temp):
@@ -294,3 +305,48 @@ def get_temp(temp):
     except ValueError as e:
         logging.error(e)
         return 0
+
+
+def is_hot(conf, redis_k):
+    city_id = redis_k.split('_')[0]
+    date = redis_k.split('_')[1]
+    hour = redis_k.split('_')[2]
+
+    db.get_redis_conn(conf=conf, db=conf.get('misc', 'weather_data')).smembers()
+
+
+def get_weather_data(conf, city_id, weather_date, weather_time):
+    if isinstance(weather_date, str):
+        weather_date = datetime.datetime.strptime(weather_date, "%Y-%M-%D").date()
+    if isinstance(weather_time, str):
+        weather_time = ['2', '5', '8', '11', '14', '17', '20', '23'].index(weather_time)
+    redis_k = '{city_id}_{date}_{hour}'.format(
+        city_id=city_id,
+        date=weather_date,
+        hour=weather_time)
+    redis = db.get_redis_conn(conf=conf, db=conf.get('misc', 'weather_data'))
+    v = redis.get(redis_k)
+    if not v:
+
+        results = db.get_db_Session(conf).query(WeatherData).filter(
+            WeatherData.city_id == city_id,
+            WeatherData.weather_date == weather_date,
+            WeatherData.weather_time == weather_time).all()
+        if len(results) == 0:
+            return None
+        if len(results) != 1:
+            logging.error([result.id for result in results])
+        return {
+            'city_id': city_id,
+            'weather_date': results[0].weather_date,
+            'weather_time': results[0].weather_time,
+            'cond': results[0].cond,
+            'temp': results[0].temp,
+            'wind_dir': results[0].wind_dir,
+            'wind_speed': results[0].wind_speed}
+
+    v = json.loads(v)
+    v['city_id'] = city_id
+    v['weather_date'] = weather_date
+    v['weather_time'] = weather_time
+    return v
