@@ -157,12 +157,15 @@ class Cond:
 
 
 def wind_speed_gen(new_wind_s, old_wind_s):
-    pass
+    return abs(new_wind_s - old_wind_s)
 
 
 def wind_dir_gen(new_wind_d, old_wind_d):
-    pass
-
-
-if __name__ == '__main__':
-    print (cond_score_gen(1, 4))
+    if not (isinstance(new_wind_d, int) and isinstance(old_wind_d, int)):
+        return 0
+    if new_wind_d in [0, 9] or old_wind_d in [0, 9]:
+        return 1
+    sub = abs(new_wind_d - old_wind_d)
+    if sub < 5:
+        return sub
+    return 4 - sub % 4
