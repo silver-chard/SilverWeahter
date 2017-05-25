@@ -308,6 +308,7 @@ def get_temp(temp):
 
 
 def is_hot(conf, redis_k):
+    # todo : here!
     city_id = redis_k.split('_')[0]
     date = redis_k.split('_')[1]
     hour = redis_k.split('_')[2]
