@@ -1,12 +1,12 @@
-beautifulsoup4==4.5.3
+BeautifulSoup4==4.5.3
 Mako==1.0.6
 matplotlib==2.0.2
-numpy==1.8.0rc1
+numpy==1.8.0
 PyMySQL==0.7.9
 redis==2.10.5
 requests==2.13.0
 scikit-learn==0.18.1
-scipy==0.13.0b1
+scipy==0.13.0
 sklearn==0.0
 SQLAlchemy==1.1.6
 tornado==4.4.2
