@@ -2,8 +2,8 @@
 import tornado
 from tornado import web, options, httpserver, ioloop
 
-from urls import url_patterns
-from settings import settings
+from web.sys.urls import url_patterns
+from web.sys.config.settings import settings
 
 
 class Application(tornado.web.Application):
