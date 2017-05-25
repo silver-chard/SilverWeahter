@@ -24,18 +24,6 @@ class MarkI:
     def __del__(self):
         pass
 
-    def db_conn(self):
-        """
-        db orm 获取
-        :return: 
-        """
-        # 初始化数据库连接:
-        # defengine = create_engine(
-        #     'mysql+mysqlconnector://{user}:{pwd}@{host}:3306/{db}'.format(user=user, pwd=password, host=host, db=db))
-        # 创建DBSession类型:
-        # DBSession = sessionmaker(bind=engine)
-        pass
-
     def redis(self):
         """
         redis链接获取
@@ -129,10 +117,12 @@ class MarkI:
         return weather_data
 
     def get_db_weather_data(self, weather_obj):
-        results = db.get_db_Session(self.conf).query(WeatherData).filter(
+        session =  db.get_db_Session(self.conf)
+        results =session.query(WeatherData).filter(
             WeatherData.city_id == weather_obj.city_id,
             WeatherData.weather_date == weather_obj.weather_date,
             WeatherData.weather_time == weather_obj.weather_time).all()
+        session.close()
         if len(results) == 0:
             return None
         if len(results) != 1:
@@ -190,7 +180,8 @@ class MarkI:
                 'cond': web_weather_obj.cond,
                 'wind_speed': web_weather_obj.wind_speed,
                 'wind_dir': web_weather_obj.wind_dir
-            }, self.conf.get('misc', 'redis_expire_times'))
+            }, self.conf.getint('misc', 'redis_expire_times'))
+        session.close()
 
     @staticmethod
     def compare_change(web_weather_obj, db_weather_obj):
