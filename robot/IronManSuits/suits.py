@@ -1,15 +1,14 @@
 # coding=utf-8
-import ConfigParser
 import datetime
 import json
 import logging
 import urllib
-from logging import config
 
 import bs4
 from sqlalchemy.exc import IntegrityError
 
 from robot.IronManSuits.models.weather_data import WeatherData
+from robot.IronManSuits.models.weather_score import WeatherScore
 from robot.weapons import data_miscs, db, analyse_misc
 from robot.weapons.analyse_misc import temp_score_gen, wind_speed_gen, wind_dir_gen, cond_score_gen
 
@@ -147,16 +146,29 @@ class MarkI:
         if db_weather_obj:
             score = self.compare_change(web_weather_obj, db_weather_obj)
             if score:
-
-                if score['cond_score']:
-                    db_weather_obj.cond = web_weather_obj.cond
-                if score['temp_score']:
-                    db_weather_obj.temp = web_weather_obj.temp
-                if score['wind_dir_score']:
-                    db_weather_obj.wind_dir = web_weather_obj.wind_dir
-                if score['wind_speed_score']:
-                    db_weather_obj.wind_speed = web_weather_obj.wind_speed
-                db_weather_obj.meta = web_weather_obj.meta
+                if reduce(lambda a, b: a + b, score.values()) != 0:
+                    weather_score = session.query(WeatherScore).filter(WeatherScore.city_id == self.city_id).all()
+                    if len(weather_score) == 0:
+                        weather_score = WeatherScore()
+                        weather_score.city_id = self.city_id
+                        session.add(weather_score)
+                        session.commit()
+                    else:
+                        weather_score = weather_score[0]
+                    if score['cond_score']:
+                        db_weather_obj.cond = web_weather_obj.cond
+                        weather_score.cond = weather_score.cond + score['cond_score']
+                    if score['temp_score']:
+                        db_weather_obj.temp = web_weather_obj.temp
+                        weather_score.temp = weather_score.temp + score['temp_score']
+                    if score['wind_dir_score']:
+                        db_weather_obj.wind_dir = web_weather_obj.wind_dir
+                        weather_score.wind_dir = weather_score.wind_dir + score['wind_dir_score']
+                    if score['wind_speed_score']:
+                        db_weather_obj.wind_speed = web_weather_obj.wind_speed
+                        weather_score.wind_speed = weather_score.wind_speed + score['wind_speed_score']
+                    session.commit()
+                    db_weather_obj.meta = web_weather_obj.meta
             try:
                 session.commit()
             except IntegrityError as e:
@@ -216,12 +228,3 @@ class MarkI:
             wind_dir_score = wind_dir_gen(web_weather_obj.wind_dir, db_weather_obj.wind_dir)
             score['wind_dir_score'] = hour_right * wind_dir_score
         return score
-
-
-if __name__ == '__main__':
-    logging.config.fileConfig('../config/log.conf')
-    c = ConfigParser.ConfigParser()
-    c.read('../config/config.ini')
-    r = MarkI(101010300, c)
-    res = r.get_data()
-    print res
