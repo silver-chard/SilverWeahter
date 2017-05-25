@@ -148,7 +148,8 @@ class Jarvis:
 
     def run(self):
         start = time.time()
-        if datetime.datetime.now().hour == 0 or self.conf.getboolean('misc', 'debug'):
+        if datetime.datetime.now().hour == 0 or self.conf.getboolean('misc', 'debug') or len(
+                self.city_list_redis.keys('list_*')) < 2000:
             logging.info('同步城市结构启动')
             self.search_provinces()
             logging.info('同步城市结构结束 {time:.2f}s'.format(time=time.time() - start))
