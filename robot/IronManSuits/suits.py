@@ -199,7 +199,7 @@ class MarkI:
             web_weather_obj.weather_date,
             web_weather_obj.weather_time)
         if hour_right == 0:
-            logging.warn('hour_right为0')
+            logging.debug('hour_right为0')
             return None
         score = {
             'temp_score': 0,
