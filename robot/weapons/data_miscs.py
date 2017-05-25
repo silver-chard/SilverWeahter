@@ -124,7 +124,7 @@ def cond_str2int(cond_str):
         return -1
 
 
-def cond_int2str(cond_int):
+def cond_int2str(cond_int=0):
     """
     weather cond fag(int) trans to weather cond string 
     :param cond_int: int of cond type
