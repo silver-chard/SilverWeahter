@@ -9,12 +9,12 @@ class WeatherScore(Base):
     # 表的名字:
     __tablename__ = 'weather_score'
     __table_args__ = (
-        Index('city_id', 'city_id')
+        Index('city_id', 'city_id'),
     )
 
     # 表的结构:
-    city_id = Column(INTEGER(9), index=True, primary_key=True)  # 城市id
-    temp = Column(FLOAT)
-    cond = Column(FLOAT)
-    wind_speed = Column(FLOAT)
-    wind_dir = Column(FLOAT)
+    city_id = Column(INTEGER, index=True, primary_key=True)  # 城市id
+    temp = Column(FLOAT, default=0)
+    cond = Column(FLOAT, default=0)
+    wind_speed = Column(FLOAT, default=0)
+    wind_dir = Column(FLOAT, default=0)
