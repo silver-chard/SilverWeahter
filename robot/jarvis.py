@@ -132,18 +132,27 @@ class Jarvis:
 
     def suit_maker(self):
         city_ids = self.city_list_redis.keys('list_*')
+        logging.info('天气爬取任务启动')
+        t = time.time()
         for city_id in city_ids:
-            city = MarkI(city_id=city_id, conf=self.conf)
-            city.get_data()
+            try:
+                city = MarkI(city_id=int(city_id.split('_')[1]), conf=self.conf)
+            except ValueError as e:
+                logging.error('{city_id} 生成对象时发生错误。{e}'.format(city_id=city_id, e=e))
+                continue
+            res = city.get_data()
+            if res is not True:
+                logging.error('{city_id}get_data 返回false: {res}'.format(
+                    city_id=city_id, res=res))
+        logging.info('天气爬取任务结束。耗时:{time}s，爬取{count}个城市'.format(time=time.time() - t, count=len(city_ids)))
 
     def run(self):
         start = time.time()
         if datetime.datetime.now().hour == 0 or self.conf.get('misc', 'debug'):
             logging.info('同步城市结构启动')
             self.search_provinces()
-            logging.info('爬虫爬取结束 {time}s'.format(time=time.time() - start))
-            print self.city_list_redis.keys('list_*')
-            self.suit_maker()
+            logging.info('同步城市结构结束 {time}s'.format(time=time.time() - start))
+        self.suit_maker()
 
 
 if __name__ == '__main__':
