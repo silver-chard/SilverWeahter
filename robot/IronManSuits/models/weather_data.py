@@ -16,7 +16,7 @@ class WeatherData(Base):
 
     # 表的结构:
     id = Column(INTEGER, primary_key=True, autoincrement=True)
-    city_id = Column(VARCHAR(9), index=True)  # 城市id
+    city_id = Column(INTEGER, index=True)  # 城市id
     weather_date = Column(DATE, index=True)
     weather_time = Column(INTEGER, index=True)
     cond = Column(INTEGER)
