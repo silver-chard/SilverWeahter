@@ -7,10 +7,10 @@ import urllib
 import bs4
 from sqlalchemy.exc import IntegrityError
 
-from robot.IronManSuits.models.weather_data import WeatherData
-from robot.IronManSuits.models.weather_score import WeatherScore
-from robot.weapons import data_miscs, db, analyse_misc
-from robot.weapons.analyse_misc import temp_score_gen, wind_speed_gen, wind_dir_gen, cond_score_gen
+from IronManSuits.models.weather_data import WeatherData
+from IronManSuits.models.weather_score import WeatherScore
+from weapons import data_miscs, db, analyse_misc
+from weapons.analyse_misc import temp_score_gen, wind_speed_gen, wind_dir_gen, cond_score_gen
 
 
 class MarkI:

@@ -4,8 +4,8 @@ import datetime
 import json
 import logging
 
-from robot.IronManSuits.models.weather_data import WeatherData
-from robot.weapons import db
+from IronManSuits.models.weather_data import WeatherData
+from weapons import db
 
 """
 cond 

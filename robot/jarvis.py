@@ -7,8 +7,8 @@ import time
 import urllib2
 from logging import config
 
-from robot.IronManSuits.suits import MarkI
-from robot.weapons import db
+from IronManSuits.suits import MarkI
+from weapons import db
 
 
 class Jarvis:
@@ -154,10 +154,6 @@ class Jarvis:
             logging.info('同步城市结构结束 {time:.2f}s'.format(time=time.time() - start))
         self.suit_maker()
 
-
-    def target(self):
-        # todo: 每日凌晨执行，同步weather.com.cn线上城市结构
-        pass
 
 if __name__ == '__main__':
     logging.config.fileConfig('config/log.conf')

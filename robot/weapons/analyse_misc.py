@@ -7,8 +7,8 @@ import scipy
 from numpy.core import umath
 from scipy import special
 
-from robot.weapons import data_miscs
-from robot.weapons.data_miscs import cond_int2str
+from weapons import data_miscs
+from weapons.data_miscs import cond_int2str
 
 
 def get_hour_right(weather_date, weather_time):
