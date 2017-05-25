@@ -77,7 +77,8 @@ class MarkI:
         :return: 
         """
         req = urllib.urlopen('http://www.weather.com.cn/weather/{city_id}.shtml'.format(city_id=self.city_id))
-        print 'http://www.weather.com.cn/weather/{city_id}.shtml'.format(city_id=self.city_id)
+        # print 'http://www.weather.com.cn/weather/{city_id}.shtml'.format(city_id=self.city_id)
+        logging.info('开始爬取: http://www.weather.com.cn/weather/{city_id}.shtml'.format(city_id=self.city_id))
         if req.getcode() / 100 == 2:
             weather_html = bs4.BeautifulSoup(req.read(), 'html.parser')
             try:
