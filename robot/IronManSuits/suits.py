@@ -51,9 +51,9 @@ class MarkI:
         :return: 
         """
         err_count = 0
-        while not self._get_data() and err_count < self.conf.get('misc', 'max_err'):
+        while not self._get_data() and err_count < int(self.conf.get('misc', 'max_err')):
             err_count += 1
-        if err_count == self.conf.get('misc', 'max_err'):
+        if err_count == int(self.conf.get('misc', 'max_err')):
             logging.error('[{city_id}]: error time over limit'.format(city_id=self.city_id))
             return False
         if '7d' not in self._raw_weather_data:
@@ -81,7 +81,7 @@ class MarkI:
 
         for weather_lists in self._raw_weather_data:
             for weather in weather_lists:
-                self.save_data(weather)
+                self.process_data(weather)
         return True
 
     def _get_data(self):
@@ -90,6 +90,7 @@ class MarkI:
         :return: 
         """
         req = urllib.urlopen('http://www.weather.com.cn/weather/{city_id}.shtml'.format(city_id=self.city_id))
+        print 'http://www.weather.com.cn/weather/{city_id}.shtml'.format(city_id=self.city_id)
         if req.getcode() / 100 == 2:
             weather_html = bs4.BeautifulSoup(req.read(), 'html.parser')
             try:
@@ -111,9 +112,14 @@ class MarkI:
             return None
 
     def get_web_weather_obj(self, raw_weather):
+        """
+        通过raw_weather 获取 weather object
+        :param raw_weather: 
+        :return: 
+        """
         weather = raw_weather.encode('utf8').split(',')
         weather_data = WeatherData()
-        weather_data.city_id = self.city_id
+        weather_data.city_id = '{}'.format(self.city_id)
         weather_data.weather_date = data_miscs.get_date(weather[0])
         weather_data.weather_time = data_miscs.get_time(weather[0])
         weather_data.cond = data_miscs.cond_str2int(weather[2])
@@ -134,20 +140,30 @@ class MarkI:
             logging.error([result.id for result in results])
         return results[0]
 
-    def save_data(self, raw_weather):
+    def process_data(self, raw_weather):
         session = db.get_db_Session(self.conf)
         web_weather_obj = self.get_web_weather_obj(raw_weather)
         db_weather_obj = self.get_db_weather_data(web_weather_obj)
         if db_weather_obj:
-            web_weather_obj, score = self.compare_change(web_weather_obj, db_weather_obj)
+            score = self.compare_change(web_weather_obj, db_weather_obj)
+            if score:
+
+                if score['cond_score']:
+                    db_weather_obj.cond = web_weather_obj.cond
+                if score['temp_score']:
+                    db_weather_obj.temp = web_weather_obj.temp
+                if score['wind_dir_score']:
+                    db_weather_obj.wind_dir = web_weather_obj.wind_dir
+                if score['wind_speed_score']:
+                    db_weather_obj.wind_speed = web_weather_obj.wind_speed
+                db_weather_obj.meta = web_weather_obj.meta
             try:
-                session.update(web_weather_obj)
                 session.commit()
             except IntegrityError as e:
                 logging.error(e)
         else:
             try:
-                session.add(db_weather_obj)
+                session.add(web_weather_obj)
                 session.commit()
             except IntegrityError as e:
                 logging.error(e)
@@ -156,8 +172,7 @@ class MarkI:
             date=web_weather_obj.weather_date,
             hour=web_weather_obj.weather_time
         )
-        if (
-                    web_weather_obj.weather_date - datetime.datetime.now().date()).hours < 49 or is_hot(redis_k):
+        if (web_weather_obj.weather_date - datetime.datetime.now().date()).days < 3:  # todo or is_hot(redis_k):
             self.redis().set(redis_k, {
                 'temp': web_weather_obj.temp,
                 'cond': web_weather_obj.cond,
@@ -165,46 +180,48 @@ class MarkI:
                 'wind_dir': web_weather_obj.wind_dir
             }, self.conf.get('misc', 'redis_expire_times'))
 
-    def save_history(self):
-        pass
-
-    def start(self):
-        pass
-
-    def compare_change(self, web_weather_obj, db_weather_obj):
-        if (web_weather_obj.city_id != db_weather_obj.city_id or
-                    web_weather_obj.weather_date != db_weather_obj.weather_date or
-                    web_weather_obj.weather_time != db_weather_obj.weather_time):
+    @staticmethod
+    def compare_change(web_weather_obj, db_weather_obj):
+        if web_weather_obj.city_id != db_weather_obj.city_id:
             logging.error('city_id错误')
+            return None
+        if web_weather_obj.weather_date != db_weather_obj.weather_date:
+            logging.error('weather_date错误')
+            return None
+        if web_weather_obj.weather_time != db_weather_obj.weather_time:
+            logging.error('weather_time错误')
+            return None
         hour_right = analyse_misc.get_hour_right(
             web_weather_obj.weather_date,
             web_weather_obj.weather_time)
-        temp_score = temp_score_gen(web_weather_obj.temp, db_weather_obj.temp)
-        cond_score = cond_score_gen(web_weather_obj.cond, db_weather_obj.cond)
-        wind_speed_score = wind_speed_gen(web_weather_obj.wind_speed, db_weather_obj.wind_speed)
-        wind_dir_score = wind_dir_gen(web_weather_obj.wind_dir, db_weather_obj.wind_dir)
+        if hour_right == 0:
+            logging.warn('hour_right为0')
+            return None
         score = {
-            'temp_score': hour_right * (temp_score),
-            'cond_score': hour_right * (cond_score),
-            'wind_speed_score': hour_right * (wind_speed_score),
-            'wind_dir_score': hour_right * (wind_dir_score),
+            'temp_score': 0,
+            'cond_score': 0,
+            'wind_speed_score': 0,
+            'wind_dir_score': 0
         }
-        web_weather_obj.id = db_weather_obj.id
-        return web_weather_obj, score
+        if web_weather_obj.temp != db_weather_obj.temp:
+            temp_score = temp_score_gen(web_weather_obj.temp, db_weather_obj.temp)
+            score['temp_score'] = hour_right * temp_score
+        if web_weather_obj.cond != db_weather_obj.cond:
+            cond_score = cond_score_gen(web_weather_obj.cond, db_weather_obj.cond)
+            score['cond_score'] = hour_right * cond_score
+        if web_weather_obj.wind_speed != db_weather_obj.wind_speed:
+            wind_speed_score = wind_speed_gen(web_weather_obj.wind_speed, db_weather_obj.wind_speed)
+            score['wind_speed_score'] = hour_right * wind_speed_score
+        if web_weather_obj.wind_dir != db_weather_obj.wind_dir:
+            wind_dir_score = wind_dir_gen(web_weather_obj.wind_dir, db_weather_obj.wind_dir)
+            score['wind_dir_score'] = hour_right * wind_dir_score
+        return score
 
 
 if __name__ == '__main__':
-    # logging.basicConfig(
-    #     level=logging.DEBUG,
-    #     format='%(asctime)s %(filename)s[line:%(lineno)d] %(levelname)s %(message)s',
-    #     datefmt='%Y-%b-%d:%H:%M:%S',
-    #     filname='robot_run_error.log',
-    #     filemode='a+',
-    #     disable_existing_loggers=0,
-    #     maxbytes=0
-    #
-    # )
     logging.config.fileConfig('../config/log.conf')
     c = ConfigParser.ConfigParser()
     c.read('../config/config.ini')
     r = MarkI(101010300, c)
+    res = r.get_data()
+    print res
