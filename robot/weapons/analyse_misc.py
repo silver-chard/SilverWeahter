@@ -29,10 +29,12 @@ def get_hour_right(weather_date, weather_time):
             logging.error(e)
             weather_time = 0
         hour = today_hour + days_hour + weather_time
+        if hour <= 0:
+            return 0
         right = math.log(hour, umath.e) * -0.67 + 4.0048
         return right
 
-    except BaseException as  error_info:
+    except BaseException as error_info:
         logging.error('日期加权部分(get_day_right)出错 {} {}'.format(hour, error_info))
 
 
@@ -66,7 +68,9 @@ def temp_score_gen(new_temp, old_temp):
 
 
 def cond_score_gen(new_cond, old_cond):
-    if cond_int2str(new_cond) == -1 or cond_int2str(old_cond) == -1:
+    new_cond = cond_int2str(new_cond)
+    old_cond = cond_int2str(old_cond)
+    if new_cond == -1 or old_cond == -1:
         return None
     new_cond = Cond(new_cond)
     old_cond = Cond(old_cond)
@@ -161,4 +165,4 @@ def wind_dir_gen(new_wind_d, old_wind_d):
 
 
 if __name__ == '__main__':
-    print (temp_score_gen(1, 4))
+    print (cond_score_gen(1, 4))
