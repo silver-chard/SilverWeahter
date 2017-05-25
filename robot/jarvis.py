@@ -37,7 +37,7 @@ class Jarvis:
         for prov_no in provs:
             self.city_list_redis.set(
                 'china_{prov_no}'.format(prov_no=prov_no), provs[prov_no],
-                ex=self.conf.get('misc', 'city_list_expires'))
+                ex=self.conf.getint('misc', 'city_list_expires'))
         # print {prov_id: self.city_list_redis.get(prov_id) for prov_id in self.city_list_redis.keys('prov_*')}
         for prov_no in provs:
             self.search_cities(prov_no)
@@ -65,7 +65,7 @@ class Jarvis:
                 self.city_list_redis.set(
                     'city_{prov_no}_{city_no}'.format(prov_no=prov_no, city_no=city_no),
                     cities[city_no],
-                    self.conf.get('misc', 'city_list_expires')
+                    self.conf.getint('misc', 'city_list_expires')
                 )
                 self.search_stations(prov_no, city_no, flag=0)
 
@@ -83,13 +83,13 @@ class Jarvis:
                         'station_{prov_no}_{city_no}_{prov_no}{city_no}{station_no}'.format(
                             prov_no=prov_no, city_no=city_no, station_no=station_no),
                         stations[station_no],
-                        self.conf.get('misc', 'city_list_expires')
+                        self.conf.getint('misc', 'city_list_expires')
                     )
                     self.city_list_redis.set(
                         'list_{prov_no}{city_no}{station_no}'.format(
                             prov_no=prov_no, city_no=city_no, station_no=station_no),
                         stations[station_no],
-                        self.conf.get('misc', 'city_list_expires')
+                        self.conf.getint('misc', 'city_list_expires')
                     )
 
                 else:
@@ -97,12 +97,12 @@ class Jarvis:
                         'station_{prov_no}_{city_no}_{station_no}'.format(
                             prov_no=prov_no, city_no=city_no, station_no=station_no),
                         stations[station_no],
-                        self.conf.get('misc', 'city_list_expires')
+                        self.conf.getint('misc', 'city_list_expires')
                     )
                     self.city_list_redis.set(
                         'list_{station_no}'.format(station_no=station_no),
                         stations[station_no],
-                        self.conf.get('misc', 'city_list_expires')
+                        self.conf.getint('misc', 'city_list_expires')
                     )
         elif flag == 1:
             for station_no in stations:
@@ -111,23 +111,23 @@ class Jarvis:
                         'station_{prov_no}_{prov_no}{station_no}{city_no}'.format(
                             prov_no=prov_no, city_no=city_no, station_no=station_no),
                         stations[station_no],
-                        self.conf.get('misc', 'city_list_expires'))
+                        self.conf.getint('misc', 'city_list_expires'))
                     self.city_list_redis.set(
                         'list_{prov_no}{station_no}{city_no}'.format(
                             prov_no=prov_no, city_no=city_no, station_no=station_no),
                         stations[station_no],
-                        self.conf.get('misc', 'city_list_expires')
+                        self.conf.getint('misc', 'city_list_expires')
                     )
                 else:
                     self.city_list_redis.set(
                         'station_{prov_no}_{station_no}'.format(prov_no=prov_no, station_no=station_no),
                         stations[station_no],
-                        self.conf.get('misc', 'city_list_expires')
+                        self.conf.getint('misc', 'city_list_expires')
                     )
                     self.city_list_redis.set(
                         'list_{station_no}'.format(station_no=station_no),
                         stations[station_no],
-                        self.conf.get('misc', 'city_list_expires')
+                        self.conf.getint('misc', 'city_list_expires')
                     )
 
     def suit_maker(self):
@@ -144,14 +144,14 @@ class Jarvis:
             if res is not True:
                 logging.error('{city_id}get_data 返回false: {res}'.format(
                     city_id=city_id, res=res))
-        logging.info('天气爬取任务结束。耗时:{time}s，爬取{count}个城市'.format(time=time.time() - t, count=len(city_ids)))
+        logging.info('天气爬取任务结束。耗时:{time:.2f}s，爬取{count}个城市'.format(time=time.time() - t, count=len(city_ids)))
 
     def run(self):
         start = time.time()
-        if datetime.datetime.now().hour == 0 or self.conf.get('misc', 'debug'):
+        if datetime.datetime.now().hour == 0 or self.conf.getboolean('misc', 'debug'):
             logging.info('同步城市结构启动')
             self.search_provinces()
-            logging.info('同步城市结构结束 {time}s'.format(time=time.time() - start))
+            logging.info('同步城市结构结束 {time:.2f}s'.format(time=time.time() - start))
         self.suit_maker()
 
 
