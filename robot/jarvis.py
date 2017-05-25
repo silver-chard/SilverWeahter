@@ -1,11 +1,14 @@
 # coding=utf-8
 import ConfigParser
+import datetime
 import json
+import logging
 import time
 import urllib2
+from logging import config
 
 from robot.IronManSuits.suits import MarkI
-from robot.weapens import db
+from robot.weapons import db
 
 
 class Jarvis:
@@ -13,14 +16,14 @@ class Jarvis:
     Jarvis 可以制作和管理许多suit 
     每个suit可以获取天气信息 分析 等等……
     """
-    def __init__(self, config_path='config.ini'):
 
+    def __init__(self, config_path='config/config.ini'):
         conf = ConfigParser.ConfigParser()
         conf.read(config_path)
         if not conf.sections():
             exit(1)
         self.conf = conf
-        self.db = db.get_db_conn(conf=conf)
+        self.db = db.get_db_Session(conf=conf)
         self.city_list_redis = db.get_redis_conn(conf=conf, db=self.conf.get('misc', 'city_list_redis'))
         if self.conf.get('misc', 'debug'):
             self.city_list_redis.flushall()
@@ -34,7 +37,7 @@ class Jarvis:
         for prov_no in provs:
             self.city_list_redis.set(
                 'china_{prov_no}'.format(prov_no=prov_no), provs[prov_no],
-                ex=self.conf.get('misc', 'city_list_expires'))
+                ex=self.conf.getint('misc', 'city_list_expires'))
         # print {prov_id: self.city_list_redis.get(prov_id) for prov_id in self.city_list_redis.keys('prov_*')}
         for prov_no in provs:
             self.search_cities(prov_no)
@@ -62,7 +65,7 @@ class Jarvis:
                 self.city_list_redis.set(
                     'city_{prov_no}_{city_no}'.format(prov_no=prov_no, city_no=city_no),
                     cities[city_no],
-                    self.conf.get('misc', 'city_list_expires')
+                    self.conf.getint('misc', 'city_list_expires')
                 )
                 self.search_stations(prov_no, city_no, flag=0)
 
@@ -80,13 +83,13 @@ class Jarvis:
                         'station_{prov_no}_{city_no}_{prov_no}{city_no}{station_no}'.format(
                             prov_no=prov_no, city_no=city_no, station_no=station_no),
                         stations[station_no],
-                        self.conf.get('misc', 'city_list_expires')
+                        self.conf.getint('misc', 'city_list_expires')
                     )
                     self.city_list_redis.set(
                         'list_{prov_no}{city_no}{station_no}'.format(
                             prov_no=prov_no, city_no=city_no, station_no=station_no),
                         stations[station_no],
-                        self.conf.get('misc', 'city_list_expires')
+                        self.conf.getint('misc', 'city_list_expires')
                     )
 
                 else:
@@ -94,54 +97,70 @@ class Jarvis:
                         'station_{prov_no}_{city_no}_{station_no}'.format(
                             prov_no=prov_no, city_no=city_no, station_no=station_no),
                         stations[station_no],
-                        self.conf.get('misc', 'city_list_expires')
+                        self.conf.getint('misc', 'city_list_expires')
                     )
                     self.city_list_redis.set(
                         'list_{station_no}'.format(station_no=station_no),
                         stations[station_no],
-                        self.conf.get('misc', 'city_list_expires')
+                        self.conf.getint('misc', 'city_list_expires')
                     )
         elif flag == 1:
             for station_no in stations:
                 if len(station_no) == 2:
                     self.city_list_redis.set(
-                        'city_{prov_no}_{prov_no}{station_no}{city_no}'.format(
+                        'station_{prov_no}_{prov_no}{station_no}{city_no}'.format(
                             prov_no=prov_no, city_no=city_no, station_no=station_no),
                         stations[station_no],
-                        self.conf.get('misc', 'city_list_expires'))
+                        self.conf.getint('misc', 'city_list_expires'))
                     self.city_list_redis.set(
                         'list_{prov_no}{station_no}{city_no}'.format(
                             prov_no=prov_no, city_no=city_no, station_no=station_no),
                         stations[station_no],
-                        self.conf.get('misc', 'city_list_expires')
+                        self.conf.getint('misc', 'city_list_expires')
                     )
                 else:
                     self.city_list_redis.set(
-                        'city_{prov_no}_{station_no}'.format(prov_no=prov_no, station_no=station_no),
+                        'station_{prov_no}_{station_no}'.format(prov_no=prov_no, station_no=station_no),
                         stations[station_no],
-                        self.conf.get('misc', 'city_list_expires')
+                        self.conf.getint('misc', 'city_list_expires')
                     )
                     self.city_list_redis.set(
                         'list_{station_no}'.format(station_no=station_no),
                         stations[station_no],
-                        self.conf.get('misc', 'city_list_expires')
+                        self.conf.getint('misc', 'city_list_expires')
                     )
 
     def suit_maker(self):
-        # todo: 根据city_id 准备一群suits 然后运行每个suit
-        city_ids = self.city_list_redis.get('list_*')
-        print "已有城市:", len(city_ids)
+        city_ids = self.city_list_redis.keys('list_*')
+        logging.info('天气爬取任务启动')
+        t = time.time()
         for city_id in city_ids:
-            city = MarkI(city_id=city_id, conf=self.conf)
-            print city.get_data()
+            try:
+                city = MarkI(city_id=int(city_id.split('_')[1]), conf=self.conf)
+            except ValueError as e:
+                logging.error('{city_id} 生成对象时发生错误。{e}'.format(city_id=city_id, e=e))
+                continue
+            res = city.get_data()
+            if res is not True:
+                logging.error('{city_id}get_data 返回false: {res}'.format(
+                    city_id=city_id, res=res))
+        logging.info('天气爬取任务结束。耗时:{time:.2f}s，爬取{count}个城市'.format(time=time.time() - t, count=len(city_ids)))
+
+    def run(self):
+        start = time.time()
+        if datetime.datetime.now().hour == 0 or self.conf.getboolean('misc', 'debug'):
+            logging.info('同步城市结构启动')
+            self.search_provinces()
+            logging.info('同步城市结构结束 {time:.2f}s'.format(time=time.time() - start))
+        self.suit_maker()
+
 
     def target(self):
         # todo: 每日凌晨执行，同步weather.com.cn线上城市结构
         pass
 
 if __name__ == '__main__':
-    j = Jarvis('config.ini')
-    start = time.time()
-    j.search_provinces()
-    print time.time() - start, 's'
-    j.suit_maker()
+    logging.config.fileConfig('config/log.conf')
+    logging.info('爬虫定时任务启动')
+    j = Jarvis()
+    j.run()
