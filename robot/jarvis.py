@@ -18,7 +18,6 @@ class Jarvis:
     """
 
     def __init__(self, config_path='config/config.ini'):
-
         conf = ConfigParser.ConfigParser()
         conf.read(config_path)
         if not conf.sections():
@@ -132,7 +131,7 @@ class Jarvis:
                     )
 
     def suit_maker(self):
-        city_ids = self.city_list_redis.get('list_*')
+        city_ids = self.city_list_redis.keys('list_*')
         for city_id in city_ids:
             city = MarkI(city_id=city_id, conf=self.conf)
             city.get_data()
@@ -143,7 +142,8 @@ class Jarvis:
             logging.info('同步城市结构启动')
             self.search_provinces()
             logging.info('爬虫爬取结束 {time}s'.format(time=time.time() - start))
-            # self.suit_maker()
+            print self.city_list_redis.keys('list_*')
+            self.suit_maker()
 
 
 if __name__ == '__main__':
