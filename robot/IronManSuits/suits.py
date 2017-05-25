@@ -119,7 +119,7 @@ class MarkI:
         """
         weather = raw_weather.encode('utf8').split(',')
         weather_data = WeatherData()
-        weather_data.city_id = '{}'.format(self.city_id)
+        weather_data.city_id = int(self.city_id)
         weather_data.weather_date = data_miscs.get_date(weather[0])
         weather_data.weather_time = data_miscs.get_time(weather[0])
         weather_data.cond = data_miscs.cond_str2int(weather[2])
