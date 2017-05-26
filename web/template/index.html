@@ -97,6 +97,22 @@
             md.appendChild(u);
             componentHandler.upgradeElement(b);
             componentHandler.upgradeElement(u);
+            $.ajax({
+                url: "/get_stations",
+                type: "post",
+                data: {"province_id": province_id, 'city_id': city_id},
+                dataType: "json",
+                success: function (data) {
+                    for (var city in data) {
+                        var l = document.createElement('li');
+                        l.classList.add('mdl-menu__item');
+                        l.innerHTML = city;
+                        l.setAttribute('onclick', "get_date('" + data[city] + "')");
+
+                        document.getElementById('stations_ul').appendChild(l);
+                    }
+                }
+            });
         }
     }
 </script>
