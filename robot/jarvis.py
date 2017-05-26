@@ -25,8 +25,6 @@ class Jarvis:
         self.conf = conf
         self.db = db.get_db_Session(conf=conf)
         self.city_list_redis = db.get_redis_conn(conf=conf, db=self.conf.get('misc', 'city_list_redis'))
-        if self.conf.get('misc', 'debug'):
-            self.city_list_redis.flushall()
         self.weather_data_redis = db.get_redis_conn(conf=conf, db=self.conf.get('misc', 'weather_data'))
 
     def search_provinces(self):
@@ -59,7 +57,6 @@ class Jarvis:
 
         for city_no in cities:
             if len(cities) == 1:
-                # for city in cities:
                 self.search_stations(prov_no, city_no, flag=1)
             else:
                 self.city_list_redis.set(
