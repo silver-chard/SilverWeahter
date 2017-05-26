@@ -1,4 +1,103 @@
 <%inherit file='base.html'/>
 <%block name="main">
 
+<button id="menu-provinces" class="mdl-button mdl-js-button mdl-button--raised">
+    更多省份
+</button>
+<ul class="mdl-menu mdl-js-menu" for="menu-provinces" id="provinces_ul">
+</ul>
+
+</%block>
+<%block name='js'>
+
+<script>
+    function setup() {
+        get_provinces();
+    }
+    function get_provinces() {
+        $.ajax({
+            url: "/get_provinces",
+            type: "post",
+            data: {},
+            dataType: "json",
+            success: function (data) {
+                for (var prov in data) {
+                    var l = document.createElement('li');
+                    l.classList.add('mdl-menu__item');
+                    l.innerHTML = prov;
+                    l.setAttribute('onclick', "get_cities('" + data[prov] + "','" + prov + "')");
+                    document.getElementById('provinces_ul').appendChild(l);
+                }
+            }
+        });
+    }
+
+    function get_cities(prov_id, prov) {
+        document.getElementById('menu-provinces').innerHTML = prov;
+        if (!document.getElementById('menu-cities')) {
+            var b = document.createElement('button');
+            b.id = "menu-cities";
+            b.classList.add("mdl-button", "mdl-js-button", "mdl-button--raised");
+            b.innerHTML = "更多城市";
+            var u = document.createElement('ul');
+            u.id = "cities_ul";
+            u.classList.add('mdl-menu', 'mdl-js-menu');
+            u.setAttribute('for', 'menu-cities');
+            var md = document.getElementById('content_main');
+            md.appendChild(b);
+            md.appendChild(u);
+            componentHandler.upgradeElement(b);
+            componentHandler.upgradeElement(u);
+        } else {
+            document.getElementById('menu-cities').innerHTML = '更多城市';
+        }
+        document.getElementById('cities_ul').innerHTML = "";
+        $.ajax({
+            url: "/get_cities",
+            type: "post",
+            data: {"province_id": prov_id},
+            dataType: "json",
+            success: function (data) {
+                for (var city in data) {
+                    var l = document.createElement('li');
+                    l.classList.add('mdl-menu__item');
+                    l.innerHTML = city;
+                    if (data[city].length < 9) {
+                        l.setAttribute('onclick', "get_stations('" + prov_id + "','" + data[city] + "','" + city + "')");
+                    } else {
+                        var ms = document.getElementById('menu-stations');
+                        if (ms) {
+                            ms.remove();
+                        }
+                        var su = document.getElementById('stations_ul');
+                        if (su) {
+                            su.remove();
+                        }
+                        l.setAttribute('onclick', "get_date('" + data[city] + "')");
+                    }
+                    document.getElementById('cities_ul').appendChild(l);
+                }
+            }
+        });
+    }
+
+    function get_stations(province_id, city_id, city) {
+        document.getElementById('menu-cities').innerHTML = city;
+        if (!document.getElementById('menu-stations')) {
+            var b = document.createElement('button');
+            b.id = "menu-stations";
+            b.classList.add("mdl-button", "mdl-js-button", "mdl-button--raised");
+            b.innerHTML = "更多地区";
+            var u = document.createElement('ul');
+            u.id = "stations_ul";
+            u.classList.add('mdl-menu', 'mdl-js-menu');
+            u.setAttribute('for', 'menu-stations');
+            var md = document.getElementById('content_main');
+            md.appendChild(b);
+            md.appendChild(u);
+            componentHandler.upgradeElement(b);
+            componentHandler.upgradeElement(u);
+        }
+    }
+</script>
 </%block>

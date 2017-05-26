@@ -1,9 +1,11 @@
-#coding=utf-8
+# coding=utf-8
+import logging
+
 import tornado
 from tornado import web, options, httpserver, ioloop
 
-from web.sys.urls import url_patterns
 from web.sys.config.settings import settings
+from web.sys.urls import url_patterns
 
 
 class Application(tornado.web.Application):
@@ -12,6 +14,7 @@ class Application(tornado.web.Application):
 
 
 if __name__ == '__main__':
+    logging.info('Tornado is running')
     tornado.options.parse_command_line()
     http_server = tornado.httpserver.HTTPServer(Application())
     http_server.listen(settings['ports'])

@@ -1,6 +1,6 @@
 # coding=utf-8
 from handlers.basehandlers.basehandler import BaseHandler
-from services.city import get_province
+from services.city import get_province, get_city_id, get_station_id
 
 
 class GetProvince(BaseHandler):
@@ -11,7 +11,11 @@ class GetProvince(BaseHandler):
         :param kwargs: 
         :return: 
         """
-        self.write_json(get_province())
+        provinces = get_province()
+        if provinces:
+            self.write_json(provinces)
+        else:
+            self.send_error(500)
         return
 
 
@@ -23,7 +27,16 @@ class GetCity(BaseHandler):
         :param kwargs: 
         :return: 
         """
-        pass
+        province_id = self.get_argument('province_id')
+        if province_id:
+            cities = get_city_id(province_id)
+            if cities:
+                self.write_json(cities)
+            else:
+                self.send_error(500)
+            return
+        self.send_error(400)
+        return
 
 
 class GetStation(BaseHandler):
@@ -34,4 +47,10 @@ class GetStation(BaseHandler):
         :param kwargs: 
         :return: 
         """
-        pass
+        province_id = self.get_argument('province_id')
+        if not province_id:
+            self.send_error(400)
+        city_id = self.get_argument('city_id')
+        if not city_id:
+            self.send_error(400)
+        self.write_json(get_station_id(province_id, city_id))

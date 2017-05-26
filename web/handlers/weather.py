@@ -1,34 +1,17 @@
-import ConfigParser
 import datetime
 
 from handlers.basehandlers.basehandler import BaseHandler
-from robot.IronManSuits.suits import MarkI
+from services.weather import get_data
 
 
 class GetWeatherHandler(BaseHandler):
-    def get(self, city_id, *args, **kwargs):
-        city_id = int(city_id)
-        weather_date = self.get_argument('weather_date',
-                                         (datetime.datetime.now() + datetime.timedelta(days=1)).strftime('%Y-%M-%d'))
+    def get(self, *args, **kwargs):
+        city_id = self.get_argument('city_id')
+        weather_date = self.get_argument('weather_date')
+        weather_date = weather_date.split(',')
         weather_time = self.get_argument('weather_time', 255)
-        # conf = ConfigParser.ConfigParser()
-        # conf.read("../robot/config/config.ini")
-        #
-        # robot = MarkI(city_id, conf)
-        # robot.get_data()
-        # print robot.weather_data
-        # {
-        #     'city_id': city_id,
-        #     'weather_date': weather_date,
-        #     'weather_time': weather_time
-        # }
+        result = []
+        for weather_d in weather_date:
+            result = result + get_data(city_id, weather_d, weather_time)
 
-        self.write_json({
-            'city_id': city_id,
-            'weather_date': weather_date,
-            'weather_time': 8,
-            'cond': 0,
-            'temp': 23,
-            'wind_dir': 4,
-            'wind_speed': 0,
-        })
+        self.render_string('weather_table.html', result=result)
