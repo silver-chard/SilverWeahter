@@ -256,8 +256,8 @@ def get_data(city_id, weather_date, weather_time):
         conf = get_conf()
         redis = get_redis(conf=conf, db=conf.getint('redis', 'weather_date_redis'))
         v = redis.get(k)
-        data = json.loads(v)
-        if data:
+        if v:
+            data = json.loads(v)
             data['weather_time'] = t
             data['weather_date'] = weather_date
             result_redis.append(data)
@@ -267,11 +267,16 @@ def get_data(city_id, weather_date, weather_time):
         return weather_data_format(result_redis)
     # get data from db
     session = get_session()
-    results_db = session.query(WeatherData).filter(
-        WeatherData.city_id == city_id,
-        WeatherData.weather_date == weather_date,
-        WeatherData.weather_time in weather_time_flags).all()
+    results_db = []
+    for weather_time_flag in weather_time_flags:
+        result_db = session.query(WeatherData).filter(
+            WeatherData.city_id == city_id,
+            WeatherData.weather_date == weather_date,
+            WeatherData.weather_time == weather_time_flag).all()
+        if len(result_db) > 0:
+            results_db.append(result_db)
     results_db = map(lambda a: {'wind_speed': a.wind_speed, 'wind_dir': a.wind_dir, 'cond': a.cond, 'temp': a.temp,
                                 'weather_time': a.weather_time, 'weather_date': a.weather_date}, results_db)
+    session.close()
     results = results_db + result_redis
     return weather_data_format(results)

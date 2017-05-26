@@ -14,31 +14,18 @@
 
 
     <tbody>
+    % for $a in ${result}:
+
 
     <tr>
-        <td>2017-5-26</td>
-        <td>11:00</td>
-        <td>晴</td>
-        <td>22</td>
-        <td>无</td>
-        <td>无持续风向</td>
+        <td>$a['weather_date']</td>
+        <td>$a['weather_time']</td>
+        <td>$a['cond']</td>
+        <td>$a['temp']</td>
+        <td>$a['wind_speed']</td>
+        <td>$a['wind_dir']</td>
     </tr>
-    <tr>
-        <td>2017-5-26</td>
-        <td>14:00</td>
-        <td>晴</td>
-        <td>27</td>
-        <td>无</td>
-        <td>无持续风向</td>
-    </tr>
-    <tr>
-        <td>2017-5-26</td>
-        <td>17:00</td>
-        <td>晴</td>
-        <td>18</td>
-        <td>1-2级</td>
-        <td>北风</td>
-    </tr>
+    % endfor
     </tbody>
 </table>
 </%block>
